@@ -12,7 +12,7 @@ Helpers outside the household (grandparents, sitters…) can be assigned drop-of
 
 ## Install
 
-**HACS:** add this repository as a custom repository (type *Integration*), install **Pineapple Plan**, then restart Home Assistant.
+**HACS:** in HACS, open the ⋮ menu → **Custom repositories**, add `https://github.com/EPluribusAnus/ha-pineapple-plan` with type **Integration**, install **Pineapple Plan**, then restart Home Assistant.
 
 **Manually:** copy `custom_components/pineapple_plan` into your Home Assistant `config/custom_components/` folder and restart.
 
