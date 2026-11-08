@@ -71,13 +71,12 @@ weather_entity: weather.home
 
 It shows the date, each child's school or daycare run with who's dropping off and picking up, activities and who's taking them, who's working and when (and whether Adult 1 is home or at the office), dinner and who's cooking, and that day's tasks, which you can check off. Anything that still needs someone shows a **Who?** chip, and the header counts open spots. Only what applies that day is shown.
 
-Swipe, or tap the dots, to see tomorrow. Tap any line to open that day's editor at that section, or a task to edit it.
+Tap any line to open that day's editor at that section, or a task to edit it.
 
 | Option            | Default | What it does |
 |-------------------|---------|--------------|
 | `weather_entity`  | none    | A weather entity to show the current conditions and temperature in the header. |
 | `navigation_path` | none    | Tapping the title opens this dashboard path (for example `/dashboard-family/planner`) instead of the day editor. |
-| `tomorrow`        | `true`  | `false` hides the dots and the swipe to tomorrow. |
 | `max_tasks`       | `4`     | How many open tasks to show before "+N more". |
 | `accent`          | theme accent | Colour of the title and date bar. |
 

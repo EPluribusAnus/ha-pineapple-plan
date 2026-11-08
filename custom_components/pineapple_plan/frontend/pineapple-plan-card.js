@@ -4,7 +4,7 @@
  * over the websocket API.
  */
 
-const PP_VERSION = '0.2.1';
+const PP_VERSION = '0.2.2';
 
 /* ---------------------------------------------------------------- theme */
 
@@ -1389,7 +1389,7 @@ ha-card{display:block;overflow:hidden;background:var(--ha-card-background,var(--
 }
 .fact{appearance:none;border:0;background:none;text-align:left;display:flex;align-items:center;gap:10px;min-height:36px;padding:3px 6px;margin:0 -6px;border-radius:8px;cursor:pointer;color:var(--pp-ink);font-size:14px;line-height:1.25;min-width:0}
 .fact:hover{background:var(--pp-sk)}
-.fact:focus-visible,.t-title:focus-visible,.t-open:focus-visible,.t-dot:focus-visible{outline:2px solid var(--pp-ac);outline-offset:1px}
+.fact:focus-visible,.t-title:focus-visible,.t-open:focus-visible{outline:2px solid var(--pp-ac);outline-offset:1px}
 .f-ic{flex:none;width:18px;color:var(--pp-mu);display:inline-flex;justify-content:center}
 .f-ic.dn{color:#D9A21B}
 .f-b{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
@@ -1406,10 +1406,6 @@ ha-card{display:block;overflow:hidden;background:var(--ha-card-background,var(--
 .tchip .tt{padding:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tchip .av{margin-left:6px}
 .tmore{font-size:12px;color:var(--pp-mu);padding:0 4px}
-.t-dots{display:flex;justify-content:center;gap:4px;margin-top:-4px}
-.t-dot{appearance:none;border:0;background:none;padding:6px;cursor:pointer;display:inline-flex}
-.t-dot span{width:9px;height:9px;border-radius:999px;background:var(--pp-ln2)}
-.t-dot[aria-pressed="true"] span{background:var(--primary-color,#03a9f4)}
 .msg{padding:20px;color:var(--pp-mu);font-size:14px}
 `;
 
@@ -1438,12 +1434,11 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
 
   constructor() {
     super();
-    this._page = 0;
     this._editorNav = false;
   }
 
   setConfig(config) {
-    this._config = { summary: 'hidden', tomorrow: true, max_tasks: 4, ...(config || {}) };
+    this._config = { summary: 'hidden', max_tasks: 4, ...(config || {}) };
     this._render();
   }
 
@@ -1453,7 +1448,6 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
     if (this._cfg && this._weekStart && this._weekStart !== todayIso() && !this._rolling) {
       this._rolling = true;
       this._weekStart = todayIso();
-      this._page = 0;
       this._loadWeek().finally(() => { this._rolling = false; });
     } else if (this._config.weather_entity && this._cfg) {
       const st = hass.states[this._config.weather_entity];
@@ -1475,32 +1469,12 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
   }
 
   _initialStart() {
-    // Load today plus the next six days, so "tomorrow" is always available.
+    // The loaded range starts today.
     return todayIso();
-  }
-
-  _build() {
-    super._build();
-    let x0 = null;
-    this.shadowRoot.addEventListener('pointerdown', (e) => { x0 = e.clientX; });
-    this.shadowRoot.addEventListener('pointerup', (e) => {
-      if (x0 == null || !this._config.tomorrow) return;
-      const dx = e.clientX - x0;
-      x0 = null;
-      if (Math.abs(dx) > 60) {
-        this._page = dx < 0 ? 1 : 0;
-        this._render();
-      }
-    });
   }
 
   _onClick(e) {
     const el = e.target.closest?.('[data-action]');
-    if (el && el.dataset.action === 'page') {
-      this._page = Number(el.dataset.v);
-      this._render();
-      return;
-    }
     if (el && el.dataset.action === 'navigate') {
       const path = this._config.navigation_path;
       if (path) {
@@ -1519,7 +1493,7 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
   _weatherHtml() {
     const id = this._config.weather_entity;
     const st = id && this._hass?.states?.[id];
-    if (!st || this._page !== 0) return '';
+    if (!st) return '';
     const temp = st.attributes.temperature;
     const unit = st.attributes.temperature_unit || '°';
     const ic = WEATHER_ICONS[st.state] || 'mdi:weather-partly-cloudy';
@@ -1536,7 +1510,7 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
     }
     if (!this._cfg || !this._days.length) return '<ha-card><div class="msg">Loading today…</div></ha-card>';
 
-    const page = this._config.tomorrow ? this._page : 0;
+    const page = 0;
     const d = this._days[page];
     const m = this._cfg.members;
     const date = parseIso(d.date);
@@ -1595,13 +1569,10 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
       ${undone.length > max ? `<span class="tmore">+${undone.length - max} more</span>` : ''}
       ${doneCount ? `<span class="tmore">${undone.length ? '· ' : ''}${doneCount} done</span>` : ''}</div>` : '';
 
-    const title = page === 0 ? 'Today' : 'Tomorrow';
+    const title = 'Today';
     const titleTag = this._config.navigation_path
       ? `<button type="button" class="t-title" data-action="navigate" title="Open the planner">${title}</button>`
       : `<button type="button" class="t-title" ${editAttr} title="Plan ${esc(longDate)}">${title}</button>`;
-    const dots = this._config.tomorrow ? `<div class="t-dots">
-        <button type="button" class="t-dot" data-action="page" data-v="0" aria-pressed="${page === 0}" aria-label="Today"><span></span></button>
-        <button type="button" class="t-dot" data-action="page" data-v="1" aria-pressed="${page === 1}" aria-label="Tomorrow"><span></span></button></div>` : '';
 
     return `<ha-card><div class="today">
       <div class="t-head">${titleTag}<span class="t-date">${esc(longDate)}</span><span class="t-sp"></span>
@@ -1610,7 +1581,7 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
         <div class="t-cal" aria-hidden="true"><span class="d">${esc(date.toLocaleDateString(lang, { weekday: 'short' }))}</span><span class="n">${date.getDate()}</span><span class="m">${esc(date.toLocaleDateString(lang, { month: 'short' }))}</span></div>
         <div class="t-facts">${facts.join('')}</div>
       </div>
-      ${taskRow}${dots}
+      ${taskRow}
     </div></ha-card>`;
   }
 }
