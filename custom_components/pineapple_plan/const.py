@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 DOMAIN = "pineapple_plan"
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 SIGNAL_UPDATED = f"{DOMAIN}_updated"
 STORAGE_VERSION = 1

@@ -4,7 +4,7 @@
  * over the websocket API.
  */
 
-const PP_VERSION = '0.2.0';
+const PP_VERSION = '0.2.1';
 
 /* ---------------------------------------------------------------- theme */
 
@@ -225,6 +225,8 @@ const PORTAL_CSS = `
 .sh-f .note{flex:1;font-size:12px;color:var(--pp-mu)}
 .esec{display:flex;flex-direction:column;gap:14px;padding:16px 0 18px;border-top:1px solid var(--pp-ln)}
 .esec-h{display:flex;align-items:center;gap:10px}
+.esec.hl{border-top-color:transparent;outline:2px solid var(--pp-ac);outline-offset:-2px;border-radius:14px;padding:14px 14px 16px;margin:6px -6px 4px;background:var(--pp-acs)}
+.esec.hl+.esec{border-top-color:transparent}
 .esec-h h3{margin:0;font-size:17px;font-weight:700}
 .field{display:flex;flex-direction:column;gap:8px}
 .flabel{font-size:13px;font-weight:600;color:var(--pp-mu)}
@@ -552,12 +554,12 @@ class PineapplePlanCard extends HTMLElement {
     const c2 = this._name('child2');
     const out = [];
     this._days.forEach((d, i) => {
-      const add = (label) => out.push({ i, day: `${this._dow(d.date)} ${parseIso(d.date).getDate()}`, label });
-      if (d.child1_school) { if (!d.child1_drop) add(`${c1}’s drop-off`); if (!d.child1_pick) add(`${c1}’s pick-up`); }
-      if (d.child2_daycare) { if (!d.child2_drop) add(`${c2}’s drop-off`); if (!d.child2_pick) add(`${c2}’s pick-up`); }
-      if (d.jj && !d.jj_who) add(`${c1} to jiu jitsu`);
-      if (d.swim && !d.swim_who) add(`${c1} to swimming`);
-      if (!d.dinner_type) add('Dinner isn’t planned');
+      const add = (label, sec) => out.push({ i, sec, day: `${this._dow(d.date)} ${parseIso(d.date).getDate()}`, label });
+      if (d.child1_school) { if (!d.child1_drop) add(`${c1}’s drop-off`, 'child1'); if (!d.child1_pick) add(`${c1}’s pick-up`, 'child1'); }
+      if (d.child2_daycare) { if (!d.child2_drop) add(`${c2}’s drop-off`, 'child2'); if (!d.child2_pick) add(`${c2}’s pick-up`, 'child2'); }
+      if (d.jj && !d.jj_who) add(`${c1} to jiu jitsu`, 'acts');
+      if (d.swim && !d.swim_who) add(`${c1} to swimming`, 'acts');
+      if (!d.dinner_type) add('Dinner isn’t planned', 'dinner');
     });
     return out;
   }
@@ -701,7 +703,7 @@ class PineapplePlanCard extends HTMLElement {
       <span class="t13">${esc(hours || 'Working')}</span>
       ${loc ? `<span class="loc ${loc}" title="${loc === 'home' ? 'Working from home' : 'In the office'}">${icon(loc, 14)}${loc === 'home' ? 'Home' : 'Office'}</span>` : ''}</span>`;
 
-    const kid = (m, label, drop, pick) => `<span class="kid">
+    const kid = (m, label, drop, pick) => `<span class="kid" data-sec="${m.key}">
       <span class="row">${this._av(m.key, 22, true)}<span class="t13" style="font-weight:600">${esc(m.name)}</span>
         <span class="t13" style="font-weight:400">${label}</span></span>
       <span class="slots"><span class="slot">Drop ${this._who(drop)}</span><span class="slot">Pick up ${this._who(pick)}</span></span></span>`;
@@ -718,12 +720,12 @@ class PineapplePlanCard extends HTMLElement {
     ].join('');
     const actRows = [d.jj ? act('Jiu jitsu', d.jj_who) : '', d.swim ? act('Swimming', d.swim_who) : ''].join('');
 
-    const sec = (label, aria, rows) => (rows
-      ? `<button type="button" class="sec" data-action="edit" data-i="${i}" aria-label="${aria} for ${esc(long)}"><span class="lbl">${label}</span>${rows}</button>`
+    const sec = (key, label, aria, rows) => (rows
+      ? `<button type="button" class="sec" data-action="edit" data-i="${i}" data-sec="${key}" aria-label="${aria} for ${esc(long)}"><span class="lbl">${label}</span>${rows}</button>`
       : '');
-    const sections = sec('Work', 'Edit work', workRows)
-      + sec('School &amp; daycare', 'Edit school and daycare', kidRows)
-      + sec(`${esc(c1.name)}’s activities`, 'Edit activities', actRows);
+    const sections = sec('work', 'Work', 'Edit work', workRows)
+      + sec(d.child1_school ? 'child1' : 'child2', 'School &amp; daycare', 'Edit school and daycare', kidRows)
+      + sec('acts', `${esc(c1.name)}’s activities`, 'Edit activities', actRows);
 
     let dinner;
     if (d.dinner_type) {
@@ -749,7 +751,7 @@ class PineapplePlanCard extends HTMLElement {
     return `<div class="col${d.date < today ? ' past' : ''}" data-drop="${i}" data-col="${i}" style="${height}">
       <button type="button" class="dh" data-action="edit" data-i="${i}" aria-label="Plan ${esc(long)}"><span style="display:flex;align-items:baseline"><span class="dh-n disp">${parseIso(d.date).getDate()}</span><span class="dh-d">${esc(this._dow(d.date))}</span></span>${pill}</button>
       ${sections || `<button type="button" class="sec free" data-action="edit" data-i="${i}" aria-label="Plan ${esc(long)}"><span class="t13 off">Nothing scheduled</span></button>`}
-      <button type="button" class="sec dn" data-action="edit" data-i="${i}" aria-label="Edit dinner for ${esc(long)}">
+      <button type="button" class="sec dn" data-action="edit" data-i="${i}" data-sec="dinner" aria-label="Edit dinner for ${esc(long)}">
         <span class="lbl">${icon('fork', 13, 2.2)}Dinner</span>${dinner}
       </button>
       <div class="tasks"><span class="lbl">Tasks</span>${taskHtml}</div>
@@ -863,8 +865,9 @@ class PineapplePlanCard extends HTMLElement {
       <input id="${id}" class="inp" type="text" data-change="set" data-scope="${scope}" data-field="${field}" data-focus="${id}" value="${esc(value)}" placeholder="${esc(placeholder)}"></div>`;
   }
 
-  _section(title, items, avKey) {
-    return `<section class="esec"><div class="esec-h">${avKey ? this._av(avKey, 28, avKey.startsWith('child')) : ''}<h3 class="disp">${esc(title)}</h3></div>${items.join('')}</section>`;
+  _section(key, title, items, avKey) {
+    const hl = this._ui.focusSec === key ? ' hl' : '';
+    return `<section class="esec${hl}" data-esec="${key}"><div class="esec-h">${avKey ? this._av(avKey, 28, avKey.startsWith('child')) : ''}<h3 class="disp">${esc(title)}</h3></div>${items.join('')}</section>`;
   }
 
   _dayEditorHtml(i, phone) {
@@ -886,10 +889,10 @@ class PineapplePlanCard extends HTMLElement {
       c1.push(this._picker(S, 'child1_drop', d.child1_drop, drivers, 'Drop-off'));
       c1.push(this._picker(S, 'child1_pick', d.child1_pick, drivers, 'Pick-up'));
     }
-    c1.push(this._toggle(S, 'jj', d.jj, 'Jiu jitsu', 'Yes', 'No'));
-    if (d.jj) c1.push(this._picker(S, 'jj_who', d.jj_who, drivers, `Who’s taking ${m.child1.name} to jiu jitsu?`));
-    c1.push(this._toggle(S, 'swim', d.swim, 'Swimming', 'Yes', 'No'));
-    if (d.swim) c1.push(this._picker(S, 'swim_who', d.swim_who, drivers, `Who’s taking ${m.child1.name} to swimming?`));
+    const acts = [this._toggle(S, 'jj', d.jj, 'Jiu jitsu', 'Yes', 'No')];
+    if (d.jj) acts.push(this._picker(S, 'jj_who', d.jj_who, drivers, `Who’s taking ${m.child1.name} to jiu jitsu?`));
+    acts.push(this._toggle(S, 'swim', d.swim, 'Swimming', 'Yes', 'No'));
+    if (d.swim) acts.push(this._picker(S, 'swim_who', d.swim_who, drivers, `Who’s taking ${m.child1.name} to swimming?`));
 
     const c2 = [this._toggle(S, 'child2_daycare', d.child2_daycare, 'Daycare', 'Yes', 'No')];
     if (d.child2_daycare) {
@@ -918,10 +921,11 @@ class PineapplePlanCard extends HTMLElement {
       title: this._longDate(d.date),
       nav,
       body: [
-        this._section('Work', work),
-        this._section(m.child1.name, c1, 'child1'),
-        this._section(m.child2.name, c2, 'child2'),
-        this._section('Dinner', dinner),
+        this._section('work', 'Work', work),
+        this._section('child1', m.child1.name, c1, 'child1'),
+        this._section('acts', `${m.child1.name}’s activities`, acts, 'child1'),
+        this._section('child2', m.child2.name, c2, 'child2'),
+        this._section('dinner', 'Dinner', dinner),
       ].join(''),
       foot: '<span class="note">Changes save as you go.</span><button type="button" class="btn" data-action="close">Done</button>',
     });
@@ -967,7 +971,7 @@ class PineapplePlanCard extends HTMLElement {
     const me = this._me();
     const gaps = this._gaps();
     const gapHtml = gaps.length
-      ? `<div class="gaps">${gaps.map((g) => `<button type="button" class="gap" data-action="edit" data-i="${g.i}"><span class="gap-d">${esc(g.day)}</span><span class="gap-l">${esc(g.label)}</span>${icon('right', 16)}</button>`).join('')}</div>`
+      ? `<div class="gaps">${gaps.map((g) => `<button type="button" class="gap" data-action="edit" data-i="${g.i}" data-sec="${g.sec}"><span class="gap-d">${esc(g.day)}</span><span class="gap-l">${esc(g.label)}</span>${icon('right', 16)}</button>`).join('')}</div>`
       : '<span class="ok">Everything’s covered.</span>';
 
     let top;
@@ -1165,14 +1169,18 @@ class PineapplePlanCard extends HTMLElement {
       case 'close':
         this._closeOverlay();
         break;
-      case 'edit':
-        this._openDay(Number(el.dataset.i));
+      case 'edit': {
+        const secEl = e.target.closest?.('[data-sec]');
+        this._openDay(Number(el.dataset.i), secEl && el.contains(secEl) ? secEl.dataset.sec : null);
         break;
+      }
       case 'edit-step': {
+        // Stepping days keeps the same section in view and outlined.
         const next = this._ui.edit + Number(v);
-        if (next < 0) this._changeWeek(-1, 6).then(() => this._openDay(6));
-        else if (next > 6) this._changeWeek(1, 0).then(() => this._openDay(0));
-        else this._openDay(next);
+        const sec = this._ui.focusSec;
+        if (next < 0) this._changeWeek(-1, 6).then(() => this._openDay(6, sec));
+        else if (next > 6) this._changeWeek(1, 0).then(() => this._openDay(0, sec));
+        else this._openDay(next, sec);
         break;
       }
       case 'set':
@@ -1240,9 +1248,18 @@ class PineapplePlanCard extends HTMLElement {
     }
   }
 
-  _openDay(i) {
-    this._ui = { edit: i, taskEdit: null, inboxOpen: false, summaryOpen: false };
+  _openDay(i, sec = null) {
+    const stepping = this._ui.edit != null;
+    this._ui = { edit: i, taskEdit: null, inboxOpen: false, summaryOpen: false, focusSec: sec };
     this._renderPortal();
+    const target = sec && this._portal?.querySelector(`[data-esec="${sec}"]`);
+    if (target) {
+      const body = target.closest('.sh-b');
+      // Wait a frame so the sheet has its size, then bring the section to the top of the sheet.
+      requestAnimationFrame(() => {
+        if (body) body.scrollTo({ top: Math.max(0, target.offsetTop - body.offsetTop - 8), behavior: stepping ? 'smooth' : 'auto' });
+      });
+    }
     const d = this._days[i];
     if (d && d.dinner_type === 'mealie' && this._cfg.mealie && !this._recipes.list.length) this._loadRecipes();
   }
@@ -1527,8 +1544,8 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
     const longDate = date.toLocaleDateString(lang, { weekday: 'short', month: 'short', day: 'numeric' });
     const editAttr = `data-action="edit" data-i="${page}"`;
     const facts = [];
-    const fact = (ic, body, label, cls = '') => facts.push(
-      `<button type="button" class="fact" ${editAttr} aria-label="${esc(label)}"><span class="f-ic ${cls}">${icon(ic, 17)}</span><span class="f-b">${body}</span></button>`,
+    const fact = (ic, body, label, cls = '', sec = '') => facts.push(
+      `<button type="button" class="fact" ${editAttr}${sec ? ` data-sec="${sec}"` : ''} aria-label="${esc(label)}"><span class="f-ic ${cls}">${icon(ic, 17)}</span><span class="f-b">${body}</span></button>`,
     );
 
     const kid = (member, kind, drop, pick) => fact(
@@ -1536,6 +1553,7 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
       `${this._av(member.key, 22, true)}<b>${esc(member.name)}</b><span class="mini">${kind}</span><span class="sep"></span>
        <span class="mini">drop</span>${this._whoChip(drop)}<span class="mini">pick up</span>${this._whoChip(pick)}`,
       `${member.name} ${kind}: drop-off ${this._name(drop) || 'nobody yet'}, pick-up ${this._name(pick) || 'nobody yet'}`,
+      '', member.key,
     );
     if (d.child1_school) kid(m.child1, 'school', d.child1_drop, d.child1_pick);
     if (d.child2_daycare) kid(m.child2, 'daycare', d.child2_drop, d.child2_pick);
@@ -1545,27 +1563,28 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
     if (d.swim) acts.push(['Swimming', d.swim_who]);
     if (acts.length) {
       fact('medal', acts.map(([l, w], idx) => `${idx ? '<span class="sep"></span>' : ''}<span>${l}</span>${this._whoChip(w)}`).join(''),
-        acts.map(([l, w]) => `${l}: ${this._name(w) || 'nobody yet'}`).join(', '));
+        acts.map(([l, w]) => `${l}: ${this._name(w) || 'nobody yet'}`).join(', '), '', 'acts');
     }
 
     const work = [];
     if (d.adult1_works) work.push(`${this._av('adult1', 22)}<span>${esc(d.adult1_hours || 'Working')}</span>${d.adult1_location ? `<span class="loc ${d.adult1_location}" style="display:inline-flex;color:var(--pp-${d.adult1_location === 'home' ? 'hm' : 'of'})" title="${d.adult1_location === 'home' ? 'Working from home' : 'In the office'}">${icon(d.adult1_location, 15)}</span>` : ''}`);
     if (d.adult2_works) work.push(`${this._av('adult2', 22)}<span>${esc(d.adult2_hours || 'Working')}</span>`);
-    if (work.length) fact('briefcase', work.join('<span class="sep"></span>'), 'Work hours');
+    if (work.length) fact('briefcase', work.join('<span class="sep"></span>'), 'Work hours', '', 'work');
 
     if (d.dinner_type) {
       const cooks = this._cooks(d);
       const kind = d.dinner_type === 'takeout' ? 'takeout' : d.dinner_type === 'other' ? '' : (cooks.length ? '' : 'who’s cooking?');
       fact('fork', `<span class="f-meal">${esc(this._mealText(d))}</span>${cooks.map((k) => this._av(k, 22)).join('')}${kind ? `<span class="mini">${kind}</span>` : ''}`,
-        `Dinner: ${this._mealText(d)}`, 'dn');
+        `Dinner: ${this._mealText(d)}`, 'dn', 'dinner');
     } else {
-      fact('fork', '<span class="plan">Plan dinner</span>', 'Plan dinner', 'dn');
+      fact('fork', '<span class="plan">Plan dinner</span>', 'Plan dinner', 'dn', 'dinner');
     }
 
     if (facts.length === 1) facts.unshift(`<button type="button" class="fact" ${editAttr}><span class="f-ic">${icon('calendar', 17)}</span><span class="f-b mini">Nothing else scheduled</span></button>`);
 
     // Open spots for this day only.
-    const open = this._gaps().filter((g) => g.i === page).length;
+    const dayGaps = this._gaps().filter((g) => g.i === page);
+    const open = dayGaps.length;
 
     const tasks = this._tasks.filter((t) => t.date === d.date);
     const undone = tasks.filter((t) => !t.done);
@@ -1586,7 +1605,7 @@ class PineapplePlanTodayCard extends PineapplePlanCard {
 
     return `<ha-card><div class="today">
       <div class="t-head">${titleTag}<span class="t-date">${esc(longDate)}</span><span class="t-sp"></span>
-        ${open ? `<button type="button" class="t-open" ${editAttr}>${open} open</button>` : ''}${this._weatherHtml()}</div>
+        ${open ? `<button type="button" class="t-open" ${editAttr}${open ? ` data-sec="${dayGaps[0].sec}"` : ''}>${open} open</button>` : ''}${this._weatherHtml()}</div>
       <div class="t-main">
         <div class="t-cal" aria-hidden="true"><span class="d">${esc(date.toLocaleDateString(lang, { weekday: 'short' }))}</span><span class="n">${date.getDate()}</span><span class="m">${esc(date.toLocaleDateString(lang, { month: 'short' }))}</span></div>
         <div class="t-facts">${facts.join('')}</div>

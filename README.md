@@ -58,7 +58,7 @@ summary: household
 
 The card lays itself out by its own width: one day at a time on a phone (swipe, or use the arrows), 3 or 5 days on mid-size screens (scrolls continuously), and the whole week on wide screens. On tablets and desktops the task inbox is a collapsible sidebar, closed by default.
 
-Each day only shows what applies (who's working, school or daycare runs, activities). Tap the date or any section to plan the day, including turning things back on. **+ Task** on a day opens the inbox so you can pick an existing task or type a new one for that day. Dragging tasks onto a day works too.
+Each day only shows what applies (who's working, school or daycare runs, activities). Tap the date or any section to plan the day, including turning things back on. Tapping a section opens the editor scrolled to that part (work, a child's school or daycare run, activities or dinner) with it outlined. **+ Task** on a day opens the inbox so you can pick an existing task or type a new one for that day. Dragging tasks onto a day works too.
 
 ### Today
 
@@ -71,7 +71,7 @@ weather_entity: weather.home
 
 It shows the date, each child's school or daycare run with who's dropping off and picking up, activities and who's taking them, who's working and when (and whether Adult 1 is home or at the office), dinner and who's cooking, and that day's tasks, which you can check off. Anything that still needs someone shows a **Who?** chip, and the header counts open spots. Only what applies that day is shown.
 
-Swipe, or tap the dots, to see tomorrow. Tap any line to open that day's editor, or a task to edit it.
+Swipe, or tap the dots, to see tomorrow. Tap any line to open that day's editor at that section, or a task to edit it.
 
 | Option            | Default | What it does |
 |-------------------|---------|--------------|
