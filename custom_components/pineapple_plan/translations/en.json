@@ -1,0 +1,109 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Your household",
+        "description": "Match each Home Assistant person to their place in the plan. Whoever is signed in sees their own week first.",
+        "data": {
+          "adult1": "Adult 1 (works from home or the office)",
+          "adult2": "Adult 2",
+          "child1": "Child 1 (school, jiu jitsu, swimming)",
+          "child2": "Child 2 (daycare)",
+          "helpers": "Helpers outside the house"
+        },
+        "data_description": {
+          "helpers": "Grandparents, friends, sitters: anyone who can take a drop-off or pick-up. They don't need a Home Assistant account."
+        }
+      },
+      "defaults": {
+        "title": "A typical week",
+        "description": "These fill in every day automatically. You only change the exceptions in the card.",
+        "data": {
+          "week_start": "Week starts on",
+          "adult1_workdays": "Adult 1 work days",
+          "adult1_hours": "Adult 1 usual hours",
+          "adult1_location": "Adult 1 usually works from",
+          "adult2_workdays": "Adult 2 work days",
+          "adult2_hours": "Adult 2 usual hours",
+          "school_days": "Child 1 school days",
+          "default_child1_drop": "Usually drops Child 1 at school",
+          "default_child1_pick": "Usually picks Child 1 up",
+          "daycare_days": "Child 2 daycare days",
+          "default_child2_drop": "Usually drops Child 2 at daycare",
+          "default_child2_pick": "Usually picks Child 2 up",
+          "jj_days": "Jiu jitsu days",
+          "default_jj_who": "Usually takes Child 1 to jiu jitsu",
+          "swim_days": "Swimming days",
+          "default_swim_who": "Usually takes Child 1 to swimming"
+        }
+      },
+      "mealie": {
+        "title": "Dinner recipes",
+        "description": "Pick dinners straight from your Mealie recipe library.",
+        "data": {
+          "mealie_entry_id": "Mealie",
+          "mealie_write_back": "Also add planned dinners to the Mealie meal plan"
+        }
+      }
+    },
+    "error": {
+      "duplicate_person": "Each household role needs a different person."
+    },
+    "abort": {
+      "single_instance_allowed": "Pineapple Plan is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Your household",
+        "description": "Match each Home Assistant person to their place in the plan.",
+        "data": {
+          "adult1": "Adult 1 (works from home or the office)",
+          "adult2": "Adult 2",
+          "child1": "Child 1 (school, jiu jitsu, swimming)",
+          "child2": "Child 2 (daycare)",
+          "helpers": "Helpers outside the house"
+        }
+      },
+      "defaults": {
+        "title": "A typical week",
+        "description": "These fill in every day automatically. Days you've already changed keep your changes.",
+        "data": {
+          "week_start": "Week starts on",
+          "adult1_workdays": "Adult 1 work days",
+          "adult1_hours": "Adult 1 usual hours",
+          "adult1_location": "Adult 1 usually works from",
+          "adult2_workdays": "Adult 2 work days",
+          "adult2_hours": "Adult 2 usual hours",
+          "school_days": "Child 1 school days",
+          "default_child1_drop": "Usually drops Child 1 at school",
+          "default_child1_pick": "Usually picks Child 1 up",
+          "daycare_days": "Child 2 daycare days",
+          "default_child2_drop": "Usually drops Child 2 at daycare",
+          "default_child2_pick": "Usually picks Child 2 up",
+          "jj_days": "Jiu jitsu days",
+          "default_jj_who": "Usually takes Child 1 to jiu jitsu",
+          "swim_days": "Swimming days",
+          "default_swim_who": "Usually takes Child 1 to swimming"
+        }
+      },
+      "mealie": {
+        "title": "Dinner recipes",
+        "data": {
+          "mealie_entry_id": "Mealie",
+          "mealie_write_back": "Also add planned dinners to the Mealie meal plan"
+        }
+      }
+    },
+    "error": {
+      "duplicate_person": "Each household role needs a different person."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "open_spots": { "name": "Open spots" },
+      "dinner_tonight": { "name": "Dinner tonight" }
+    }
+  }
+}

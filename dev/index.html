@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pineapple Plan · card preview</title>
+<style>
+  body { margin: 0; padding: 16px; background: #e9ece8; font-family: system-ui, sans-serif; }
+  body.dark { background: #0b0f0c; }
+  .bar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; font-size: 13px; color: #444; flex-wrap: wrap; }
+  body.dark .bar { color: #aaa; }
+</style>
+</head>
+<body>
+<div class="bar">
+  Card preview with a fake backend ·
+  <a href="?">Justin</a> <a href="?user=kiosk">Kiosk</a> <a href="?user=ava">Ava</a> <a href="?dark=1">Dark</a> <a href="?nomealie=1">No Mealie</a>
+</div>
+<pineapple-plan-card id="card"></pineapple-plan-card>
+<script>
+/* Fake Home Assistant + pineapple_plan backend for previewing the card. */
+const qs = new URLSearchParams(location.search);
+const dark = qs.has('dark');
+if (dark) document.body.classList.add('dark');
+
+const pad = (n) => String(n).padStart(2, '0');
+const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const WD = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const today = new Date();
+const plus = (n) => { const d = new Date(today); d.setDate(d.getDate() + n); return iso(d); };
+
+const members = {
+  adult1: { key: 'adult1', name: 'Justin', picture: null, user_id: 'u-justin', color: '#2F62C8' },
+  adult2: { key: 'adult2', name: 'Sam', picture: null, user_id: 'u-sam', color: '#B4501B' },
+  child1: { key: 'child1', name: 'Ava', picture: null, user_id: 'u-ava', color: '#7347BF' },
+  child2: { key: 'child2', name: 'Leo', picture: null, user_id: 'u-leo', color: '#0E7A6D' },
+};
+const helpers = [
+  { key: 'h_nana', name: 'Nana', color: '#9A3E62' },
+  { key: 'h_uncle_ray', name: 'Uncle Ray', color: '#596628' },
+];
+const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri'];
+const settings = { week_start: 'sun', jj: ['mon', 'wed'], swim: ['tue', 'thu', 'sat'] };
+
+const overrides = {
+  [plus(1)]: { dinner_type: 'mealie', dinner_cook: 'adult2', dinner_meal: 'Sheet-pan gnocchi', dinner_recipe_id: 'r1' },
+  [plus(2)]: { adult1_location: 'office', child1_pick: 'h_nana', child2_pick: 'h_nana', dinner_type: 'mealie', dinner_cook: 'both', dinner_meal: 'Chicken tikka masala', dinner_recipe_id: 'r2' },
+  [plus(4)]: { child1_pick: null, child2_pick: null, swim_who: null, dinner_type: 'takeout', dinner_note: 'Thai' },
+  [plus(5)]: { child1_school: false, dinner_type: 'other', dinner_note: 'Pizza at Nana’s' },
+};
+let tasks = [
+  { id: 't1', title: 'Pay daycare tuition', who: 'adult2', date: plus(1), done: false },
+  { id: 't2', title: 'Return library books', who: null, date: plus(2), done: false },
+  { id: 't3', title: 'Prep school lunches', who: 'adult2', date: plus(0), done: true },
+  { id: 't4', title: 'Book flu shots for the kids', who: 'adult1', date: null, done: false },
+  { id: 't5', title: 'Gift for Saturday’s birthday party', who: 'adult2', date: null, done: false },
+  { id: 't6', title: 'Swap the HVAC filter', who: null, date: null, done: false },
+  { id: 't7', title: 'Tidy your room', who: 'child1', date: null, done: false },
+];
+const recipes = ['Sheet-pan gnocchi', 'Chicken tikka masala', 'Turkey chili', 'Lemon orzo soup', 'Fish tacos', 'Homemade burgers', 'Slow-cooker pot roast']
+  .map((name, i) => ({ id: `r${i + 1}`, name }));
+
+function defaults(dateIso) {
+  const [y, m, d] = dateIso.split('-').map(Number);
+  const wd = WD[new Date(y, m - 1, d).getDay()];
+  const school = weekdays.includes(wd);
+  return {
+    adult1_works: weekdays.includes(wd), adult1_hours: '9–5', adult1_location: 'home',
+    adult2_works: weekdays.includes(wd) && wd !== 'wed', adult2_hours: '7:30–4',
+    child1_school: school, child2_daycare: school,
+    child1_drop: school ? 'adult1' : null, child1_pick: school ? 'adult2' : null,
+    child2_drop: school ? 'adult1' : null, child2_pick: school ? 'adult2' : null,
+    jj: settings.jj.includes(wd), jj_who: settings.jj.includes(wd) ? 'adult1' : null,
+    swim: settings.swim.includes(wd), swim_who: settings.swim.includes(wd) ? 'adult2' : null,
+    dinner_cook: 'none', dinner_type: null, dinner_recipe_id: null, dinner_meal: '', dinner_note: '',
+  };
+}
+const resolve = (dateIso) => ({ ...defaults(dateIso), ...(overrides[dateIso] || {}), date: dateIso });
+const listeners = new Set();
+const notify = () => setTimeout(() => listeners.forEach((cb) => cb({ event: 'updated' })), 30);
+
+async function callWS(msg) {
+  await new Promise((r) => setTimeout(r, 40));
+  switch (msg.type) {
+    case 'pineapple_plan/config':
+      return { title: 'Pineapple Plan', members, helpers, week_start: settings.week_start, mealie: !qs.has('nomealie'), activities: {} };
+    case 'pineapple_plan/week': {
+      const [y, m, d] = msg.start.split('-').map(Number);
+      const days = [...Array(7)].map((_, i) => iso(new Date(y, m - 1, d + i)));
+      return { start: msg.start, days: days.map(resolve), tasks: tasks.filter((t) => !t.date || (t.date >= days[0] && t.date <= days[6])) };
+    }
+    case 'pineapple_plan/day/update':
+      overrides[msg.date] = { ...(overrides[msg.date] || {}), ...msg.patch };
+      notify();
+      return resolve(msg.date);
+    case 'pineapple_plan/task/create': {
+      const t = { id: `t${Date.now()}`, title: msg.title, who: msg.who || null, date: msg.date || null, done: false };
+      tasks.push(t); notify(); return t;
+    }
+    case 'pineapple_plan/task/update': {
+      const t = tasks.find((x) => x.id === msg.id); Object.assign(t, msg.patch); notify(); return t;
+    }
+    case 'pineapple_plan/task/delete':
+      tasks = tasks.filter((x) => x.id !== msg.id); notify(); return null;
+    case 'pineapple_plan/recipes': {
+      const q = (msg.query || '').toLowerCase();
+      return { available: true, recipes: recipes.filter((r) => r.name.toLowerCase().includes(q)) };
+    }
+    default:
+      throw { code: 'unknown_command', message: `Unknown command ${msg.type}` };
+  }
+}
+
+const userId = { kiosk: 'u-kiosk', ava: 'u-ava' }[qs.get('user')] || 'u-justin';
+const hass = {
+  user: { id: userId, name: userId },
+  themes: { darkMode: dark },
+  locale: { language: 'en-US' },
+  callWS,
+  connection: {
+    subscribeMessage: async (cb) => { listeners.add(cb); return () => listeners.delete(cb); },
+  },
+};
+</script>
+<script type="module">
+await import('../custom_components/pineapple_plan/frontend/pineapple-plan-card.js');
+const card = document.getElementById('card');
+card.setConfig({});
+card.hass = hass;
+</script>
+</body>
+</html>

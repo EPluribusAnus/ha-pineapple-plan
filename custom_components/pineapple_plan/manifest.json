@@ -1,0 +1,14 @@
+{
+  "domain": "pineapple_plan",
+  "name": "Pineapple Plan",
+  "after_dependencies": ["mealie"],
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "person", "websocket_api"],
+  "documentation": "https://github.com/your-username/pineapple-plan",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}
