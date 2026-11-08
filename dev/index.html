@@ -96,7 +96,10 @@ const resolve = (dateIso) => ({ ...defaults(dateIso), ...(overrides[dateIso] || 
 const listeners = new Set();
 const notify = () => setTimeout(() => listeners.forEach((cb) => cb({ event: 'updated' })), 30);
 
+let msgId = 100;
 async function callWS(msg) {
+  // Like Home Assistant, the connection stamps its own numeric id on every message.
+  msg = { ...msg, id: ++msgId };
   await new Promise((r) => setTimeout(r, 40));
   switch (msg.type) {
     case 'pineapple_plan/config':
@@ -115,10 +118,10 @@ async function callWS(msg) {
       tasks.push(t); notify(); return t;
     }
     case 'pineapple_plan/task/update': {
-      const t = tasks.find((x) => x.id === msg.id); Object.assign(t, msg.patch); notify(); return t;
+      const t = tasks.find((x) => x.id === msg.task_id); Object.assign(t, msg.patch); notify(); return t;
     }
     case 'pineapple_plan/task/delete':
-      tasks = tasks.filter((x) => x.id !== msg.id); notify(); return null;
+      tasks = tasks.filter((x) => x.id !== msg.task_id); notify(); return null;
     case 'pineapple_plan/recipes': {
       const q = (msg.query || '').toLowerCase();
       return { available: true, recipes: recipes.filter((r) => r.name.toLowerCase().includes(q)) };

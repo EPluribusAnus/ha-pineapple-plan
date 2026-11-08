@@ -4,7 +4,7 @@
  * over the websocket API.
  */
 
-const PP_VERSION = '0.2.2';
+const PP_VERSION = '0.2.3';
 
 /* ---------------------------------------------------------------- theme */
 
@@ -1213,7 +1213,7 @@ class PineapplePlanCard extends HTMLElement {
         this._tasks = this._tasks.filter((x) => x.id !== id);
         this._ui.taskEdit = null;
         this._render();
-        this._ws('task/delete', { id }).catch((err) => this._toastError(err));
+        this._ws('task/delete', { task_id: id }).catch((err) => this._toastError(err));
         break;
       }
       default:
@@ -1305,7 +1305,7 @@ class PineapplePlanCard extends HTMLElement {
     if (!t) return;
     Object.assign(t, patch);
     this._render();
-    this._ws('task/update', { id, patch }).catch((err) => { this._toastError(err); this._queueReload(); });
+    this._ws('task/update', { task_id: id, patch }).catch((err) => { this._toastError(err); this._queueReload(); });
   }
 
   _addTask() {

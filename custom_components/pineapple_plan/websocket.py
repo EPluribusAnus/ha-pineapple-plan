@@ -136,7 +136,7 @@ def ws_create_task(hass: HomeAssistant, connection: websocket_api.ActiveConnecti
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "pineapple_plan/task/update",
-        vol.Required("id"): str,
+        vol.Required("task_id"): str,
         vol.Required("patch"): vol.Schema(
             {
                 vol.Optional("title"): vol.All(str, vol.Length(max=200)),
@@ -152,7 +152,7 @@ def ws_update_task(hass: HomeAssistant, connection: websocket_api.ActiveConnecti
     if (plan := _plan(hass, connection, msg)) is None:
         return
     try:
-        task = plan.update_task(msg["id"], msg["patch"])
+        task = plan.update_task(msg["task_id"], msg["patch"])
     except (PlanError, ValueError) as err:
         connection.send_error(msg["id"], "invalid", str(err))
         return
@@ -160,14 +160,14 @@ def ws_update_task(hass: HomeAssistant, connection: websocket_api.ActiveConnecti
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): "pineapple_plan/task/delete", vol.Required("id"): str}
+    {vol.Required("type"): "pineapple_plan/task/delete", vol.Required("task_id"): str}
 )
 @callback
 def ws_delete_task(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
     if (plan := _plan(hass, connection, msg)) is None:
         return
     try:
-        plan.delete_task(msg["id"])
+        plan.delete_task(msg["task_id"])
     except PlanError as err:
         connection.send_error(msg["id"], "invalid", str(err))
         return
