@@ -4,7 +4,7 @@
  * over the websocket API.
  */
 
-const PP_VERSION = '0.1.1';
+const PP_VERSION = '0.2.0';
 
 /* ---------------------------------------------------------------- theme */
 
@@ -66,6 +66,9 @@ const ICON = {
   tasks: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>',
   calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
+  backpack: '<path d="M5 10a7 7 0 0 1 14 0v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M9 4.5V3h6v1.5M8.5 14h7v4h-7z"/>',
+  medal: '<circle cx="12" cy="15" r="6"/><path d="M8.5 10.2L6 3h4l2 4 2-4h4l-2.5 7.2"/>',
 };
 const icon = (name, size = 18, sw = 2) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name]}</svg>`;
@@ -123,11 +126,11 @@ button{font:inherit;color:inherit}
 
 const CARD_CSS = `
 :host{display:block;height:100%}
-.pp{height:100%;background:var(--pp-bg);border-radius:var(--ha-card-border-radius,16px);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.pp{height:100%;background:var(--pp-bg);border:var(--pp-cardbd,none);box-shadow:var(--pp-cardsh,none);border-radius:var(--ha-card-border-radius,12px);overflow:hidden;display:flex;flex-direction:column;position:relative}
 .hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 14px}
 .n1 .hdr{padding:12px 14px 8px}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand-t{font-size:21px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-t{font-size:var(--pp-ts,21px);font-weight:var(--pp-tw,700);color:var(--pp-tac,inherit);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brand-s{font-size:13px;color:var(--pp-mu);font-weight:500;white-space:nowrap}
 .hdr-r{display:flex;align-items:center;gap:10px;flex:none}
 .wknav{display:flex;align-items:center;gap:4px;background:var(--pp-sf);border:1px solid var(--pp-ln);border-radius:12px;padding:3px}
@@ -144,7 +147,7 @@ const CARD_CSS = `
 .dot{width:6px;height:6px;border-radius:999px;background:var(--pp-ln2);transition:width .15s}
 .dot.on{width:16px;background:var(--pp-ac)}
 .body{flex:1 1 auto;display:flex;gap:14px;padding:0 20px 20px;min-height:0}
-.panel{border-radius:0;min-height:calc(100vh - var(--header-height, 56px))}
+.panel{border-radius:0;border:0;box-shadow:none;min-height:calc(100vh - var(--header-height, 56px))}
 .panel .body{min-height:0}
 .n1 .body{padding:0 14px}
 .rail{flex:0 0 56px;border:1.5px solid var(--pp-ln);background:var(--pp-sf);border-radius:18px;display:flex;align-self:stretch;overflow:hidden}
@@ -268,6 +271,10 @@ class PineapplePlanCard extends HTMLElement {
     return {};
   }
 
+  static get styles() {
+    return BASE_CSS + CARD_CSS;
+  }
+
   constructor() {
     super();
     this._config = {};
@@ -353,7 +360,7 @@ class PineapplePlanCard extends HTMLElement {
 
   _build() {
     const root = this.attachShadow({ mode: 'open' });
-    root.innerHTML = `<style>${BASE_CSS}${CARD_CSS}</style><div class="pp"></div>`;
+    root.innerHTML = `<style>${this.constructor.styles}</style><div class="pp"></div>`;
     this._root = root.querySelector('.pp');
     this._wireEvents(root);
 
@@ -369,7 +376,7 @@ class PineapplePlanCard extends HTMLElement {
 
   async _init() {
     if (!this.shadowRoot) this._build();
-    if (this._config.fonts !== false && !document.querySelector('link[data-pineapple-plan-fonts]')) {
+    if (this._pineapple() && this._config.fonts !== false && !document.querySelector('link[data-pineapple-plan-fonts]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = FONT_LINK;
@@ -379,13 +386,58 @@ class PineapplePlanCard extends HTMLElement {
     this._render();
     try {
       this._cfg = await this._ws('config');
-      this._weekStart = weekStartOf(todayIso(), this._cfg.week_start);
+      this._weekStart = this._initialStart();
       await this._loadWeek(true);
       this._subscribe();
     } catch (err) {
       this._error = err;
       this._render();
     }
+  }
+
+  _initialStart() {
+    return weekStartOf(todayIso(), this._cfg.week_start);
+  }
+
+  _pineapple() {
+    return this._config.palette === 'pineapple';
+  }
+
+  // Colours and fonts. By default everything comes from the active Home Assistant
+  // theme so the cards blend in; `palette: pineapple` brings back the original look.
+  _themeStyle() {
+    if (this._pineapple()) {
+      const t = THEMES[this._dark ? 'dark' : 'light'];
+      const fonts = this._config.fonts === false
+        ? '--pp-font:inherit;--pp-display:inherit'
+        : "--pp-font:'Inter',system-ui,sans-serif;--pp-display:'Bricolage Grotesque','Inter',sans-serif";
+      return `${themeVars(t)};${fonts};--pp-tac:${t.ink};--pp-tw:700;--pp-ts:21px;--pp-cardbd:none;--pp-cardsh:none`;
+    }
+    const ink = 'var(--primary-text-color, #212121)';
+    const primary = 'var(--primary-color, #03a9f4)';
+    const card = 'var(--ha-card-background, var(--card-background-color, #fff))';
+    const mix = (c, pct, base = 'transparent') => `color-mix(in srgb, ${c} ${pct}%, ${base})`;
+    const v = {
+      bg: card,
+      sf: 'var(--card-background-color, var(--ha-card-background, #fff))',
+      sk: mix(ink, 6), skb: mix(ink, 9),
+      ln: 'var(--divider-color, rgba(127,127,127,.25))', ln2: mix(ink, 25),
+      ink, mu: 'var(--secondary-text-color, #727272)', fa: 'var(--disabled-text-color, var(--secondary-text-color, #9e9e9e))',
+      ac: primary, aci: 'var(--text-primary-color, #fff)', acs: mix(primary, 15),
+      tac: this._config.accent || 'var(--accent-color, #ff9800)',
+      dnb: mix('#F5B92E', 10), dnd: mix('#F5B92E', 28), dni: ink,
+      gpb: mix('#D9A21B', 16), gpd: '#D9A21B', gpi: mix('#D9A21B', 75, ink),
+      tkb: mix(ink, 4), tkd: 'var(--divider-color, rgba(127,127,127,.25))', inp: mix(ink, 5),
+      sel: mix(primary, 15), tgo: mix(ink, 30), scr: 'rgba(0,0,0,.5)',
+      mlb: mix('#3FAF7A', 18), mlf: mix('#3FAF7A', 65, ink), tob: mix('#E07A3F', 18), tof: mix('#E07A3F', 65, ink),
+      otb: mix('#8A6CE0', 18), otf: mix('#8A6CE0', 65, ink),
+      hm: mix('#3FAF7A', 70, ink), of: mix('#5B8DEF', 70, ink),
+      dg: 'var(--error-color, #db4437)', dgb: mix('var(--error-color, #db4437)', 40),
+      tw: '400', ts: '26px',
+      cardbd: 'var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color, #e0e0e0))',
+      cardsh: 'var(--ha-card-box-shadow, none)',
+    };
+    return `${Object.entries(v).map(([k, x]) => `--pp-${k}:${x}`).join(';')};color-scheme:${this._dark ? 'dark' : 'light'};--pp-font:inherit;--pp-display:inherit`;
   }
 
   _subscribe() {
@@ -548,11 +600,7 @@ class PineapplePlanCard extends HTMLElement {
   _render() {
     if (!this._root) return;
     const snap = this._snapshot(this._root);
-    const t = THEMES[this._dark ? 'dark' : 'light'];
-    const fonts = this._config.fonts === false
-      ? '--pp-font:var(--paper-font-body1_-_font-family,inherit);--pp-display:var(--pp-font)'
-      : "--pp-font:'Inter',system-ui,sans-serif;--pp-display:'Bricolage Grotesque','Inter',sans-serif";
-    this._root.setAttribute('style', `${themeVars(t)};${fonts}`);
+    this._root.setAttribute('style', this._themeStyle());
     this._root.className = `pp n${this._n}${this._isPanel || this._config.fill ? ' panel' : ''}`;
     this._root.innerHTML = this._mainHtml();
     this._restore(this._root, snap);
@@ -600,7 +648,7 @@ class PineapplePlanCard extends HTMLElement {
       </div>` : '';
 
     const header = `<header class="hdr">
-      <div class="brand">${LOGO}<div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+      <div class="brand">${this._pineapple() ? LOGO : ''}<div style="display:flex;flex-direction:column;gap:1px;min-width:0">
         <span class="brand-t disp">${esc(title)}</span><span class="brand-s">${esc(this._weekLabel())}</span></div></div>
       <div class="hdr-r">${weekNav}${chip}</div></header>`;
 
@@ -749,11 +797,7 @@ class PineapplePlanCard extends HTMLElement {
     }
     if (!this._portalHost.isConnected) document.body.appendChild(this._portalHost);
     const snap = this._snapshot(this._portal);
-    const t = THEMES[this._dark ? 'dark' : 'light'];
-    const fonts = this._config.fonts === false
-      ? '--pp-font:inherit;--pp-display:inherit'
-      : "--pp-font:'Inter',system-ui,sans-serif;--pp-display:'Bricolage Grotesque','Inter',sans-serif";
-    this._portal.setAttribute('style', `${themeVars(t)};${fonts}`);
+    this._portal.setAttribute('style', this._themeStyle());
     this._portal.hidden = false;
     const opening = !this._portal.innerHTML;
     this._portal.innerHTML = html;
@@ -866,7 +910,7 @@ class PineapplePlanCard extends HTMLElement {
     if (d.dinner_type === 'other') dinner.push(this._input(S, 'dinner_note', d.dinner_note, 'What’s the plan?', 'e.g. Nana’s bringing lasagna'));
     if (d.dinner_type) dinner.push(`<div><button type="button" class="btn ghost" style="height:40px;font-size:14px" data-action="set" data-scope="day" data-field="dinner_type" data-v="null">Clear dinner</button></div>`);
 
-    const nav = `<button type="button" class="ib box" data-action="edit-step" data-v="-1" aria-label="Previous day">${icon('left')}</button>
+    const nav = this._editorNav === false ? '' : `<button type="button" class="ib box" data-action="edit-step" data-v="-1" aria-label="Previous day">${icon('left')}</button>
       <button type="button" class="ib box" data-action="edit-step" data-v="1" aria-label="Next day">${icon('right')}</button>`;
 
     return this._sheet(phone, {
@@ -1301,6 +1345,257 @@ class PineapplePlanCard extends HTMLElement {
   }
 }
 
+/* ---------------------------------------------------------------- today card */
+
+const TODAY_CSS = `
+:host{display:block}
+ha-card{display:block;overflow:hidden;background:var(--ha-card-background,var(--card-background-color,#fff));border-radius:var(--ha-card-border-radius,12px);border:var(--ha-card-border-width,1px) solid var(--ha-card-border-color,var(--divider-color,#e0e0e0));color:var(--primary-text-color)}
+.today{container-type:inline-size;padding:16px 18px 12px;display:flex;flex-direction:column;gap:12px}
+.t-head{display:flex;align-items:center;gap:10px;min-width:0}
+.t-title{appearance:none;border:0;background:none;padding:0;cursor:pointer;font-size:28px;font-weight:400;line-height:1.15;color:var(--pp-tac);white-space:nowrap}
+.t-date{font-size:14px;color:var(--pp-mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-sp{flex:1}
+.t-open{appearance:none;flex:none;display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;border:1px dashed var(--pp-gpd);background:var(--pp-gpb);color:var(--pp-gpi);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.t-wx{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:20px;color:var(--pp-ink);--mdc-icon-size:26px}
+.t-main{display:flex;gap:16px;min-width:0}
+.t-cal{display:none;flex:none;flex-direction:column;align-items:center;justify-content:center;width:58px;padding-right:16px;border-right:4px solid var(--pp-tac);border-radius:0 2px 2px 0;line-height:1.1;color:var(--pp-ink)}
+.t-cal .d{font-size:16px}
+.t-cal .n{font-size:38px;font-weight:500;letter-spacing:-.02em}
+.t-cal .m{font-size:13px;text-transform:uppercase;color:var(--pp-mu);letter-spacing:.04em}
+.t-facts{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:0 18px;align-content:start}
+@container (min-width: 460px){
+  .t-cal{display:flex}
+  .t-date{display:none}
+}
+@container (min-width: 600px){
+  .t-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+.fact{appearance:none;border:0;background:none;text-align:left;display:flex;align-items:center;gap:10px;min-height:36px;padding:3px 6px;margin:0 -6px;border-radius:8px;cursor:pointer;color:var(--pp-ink);font-size:14px;line-height:1.25;min-width:0}
+.fact:hover{background:var(--pp-sk)}
+.fact:focus-visible,.t-title:focus-visible,.t-open:focus-visible,.t-dot:focus-visible{outline:2px solid var(--pp-ac);outline-offset:1px}
+.f-ic{flex:none;width:18px;color:var(--pp-mu);display:inline-flex;justify-content:center}
+.f-ic.dn{color:#D9A21B}
+.f-b{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.f-b b{font-weight:600}
+.f-meal{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%}
+.mini{font-size:12px;color:var(--pp-mu)}
+.sep{width:1px;height:14px;background:var(--pp-ln);margin:0 2px}
+.plan{color:var(--pp-gpi);font-weight:600}
+.t-tasks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(--pp-ln)}
+.t-tasks .lbl{margin-right:4px}
+.tchip{display:inline-flex;align-items:center;max-width:100%;min-width:0;background:var(--pp-sk);border-radius:999px;padding-right:12px;height:34px}
+.tchip .chk{width:34px;height:34px}
+.tchip .ring{width:17px;height:17px}
+.tchip .tt{padding:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tchip .av{margin-left:6px}
+.tmore{font-size:12px;color:var(--pp-mu);padding:0 4px}
+.t-dots{display:flex;justify-content:center;gap:4px;margin-top:-4px}
+.t-dot{appearance:none;border:0;background:none;padding:6px;cursor:pointer;display:inline-flex}
+.t-dot span{width:9px;height:9px;border-radius:999px;background:var(--pp-ln2)}
+.t-dot[aria-pressed="true"] span{background:var(--primary-color,#03a9f4)}
+.msg{padding:20px;color:var(--pp-mu);font-size:14px}
+`;
+
+const WEATHER_ICONS = {
+  'clear-night': 'mdi:weather-night', cloudy: 'mdi:weather-cloudy', exceptional: 'mdi:alert-circle-outline',
+  fog: 'mdi:weather-fog', hail: 'mdi:weather-hail', lightning: 'mdi:weather-lightning',
+  'lightning-rainy': 'mdi:weather-lightning-rainy', partlycloudy: 'mdi:weather-partly-cloudy',
+  pouring: 'mdi:weather-pouring', rainy: 'mdi:weather-rainy', snowy: 'mdi:weather-snowy',
+  'snowy-rainy': 'mdi:weather-snowy-rainy', sunny: 'mdi:weather-sunny', windy: 'mdi:weather-windy',
+  'windy-variant': 'mdi:weather-windy-variant',
+};
+
+/*
+ * A compact "today at a glance" card that matches the rest of the dashboard:
+ * it uses the Home Assistant theme (card background, text colours, accent,
+ * font) instead of the planner's own palette. Tap anything to edit the day.
+ */
+class PineapplePlanTodayCard extends PineapplePlanCard {
+  static get styles() {
+    return BASE_CSS + TODAY_CSS;
+  }
+
+  static getStubConfig() {
+    return {};
+  }
+
+  constructor() {
+    super();
+    this._page = 0;
+    this._editorNav = false;
+  }
+
+  setConfig(config) {
+    this._config = { summary: 'hidden', tomorrow: true, max_tasks: 4, ...(config || {}) };
+    this._render();
+  }
+
+  set hass(hass) {
+    super.hass = hass;
+    // Roll over to the new day at midnight.
+    if (this._cfg && this._weekStart && this._weekStart !== todayIso() && !this._rolling) {
+      this._rolling = true;
+      this._weekStart = todayIso();
+      this._page = 0;
+      this._loadWeek().finally(() => { this._rolling = false; });
+    } else if (this._config.weather_entity && this._cfg) {
+      const st = hass.states[this._config.weather_entity];
+      const key = st ? `${st.state}|${st.attributes.temperature}` : '';
+      if (key !== this._wxKey) { this._wxKey = key; this._render(); }
+    }
+  }
+
+  get hass() {
+    return this._hass;
+  }
+
+  getCardSize() {
+    return 4;
+  }
+
+  getGridOptions() {
+    return { columns: 12, min_columns: 6 };
+  }
+
+  _initialStart() {
+    // Load today plus the next six days, so "tomorrow" is always available.
+    return todayIso();
+  }
+
+  _build() {
+    super._build();
+    let x0 = null;
+    this.shadowRoot.addEventListener('pointerdown', (e) => { x0 = e.clientX; });
+    this.shadowRoot.addEventListener('pointerup', (e) => {
+      if (x0 == null || !this._config.tomorrow) return;
+      const dx = e.clientX - x0;
+      x0 = null;
+      if (Math.abs(dx) > 60) {
+        this._page = dx < 0 ? 1 : 0;
+        this._render();
+      }
+    });
+  }
+
+  _onClick(e) {
+    const el = e.target.closest?.('[data-action]');
+    if (el && el.dataset.action === 'page') {
+      this._page = Number(el.dataset.v);
+      this._render();
+      return;
+    }
+    if (el && el.dataset.action === 'navigate') {
+      const path = this._config.navigation_path;
+      if (path) {
+        window.history.pushState(null, '', path);
+        window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } }));
+      }
+      return;
+    }
+    super._onClick(e);
+  }
+
+  _whoChip(key) {
+    return this._person(key) ? this._av(key, 22) : '<span class="gapchip">Who?</span>';
+  }
+
+  _weatherHtml() {
+    const id = this._config.weather_entity;
+    const st = id && this._hass?.states?.[id];
+    if (!st || this._page !== 0) return '';
+    const temp = st.attributes.temperature;
+    const unit = st.attributes.temperature_unit || '°';
+    const ic = WEATHER_ICONS[st.state] || 'mdi:weather-partly-cloudy';
+    return `<span class="t-wx" title="${esc(st.state)}"><ha-icon icon="${ic}"></ha-icon>${temp != null ? `${esc(Math.round(temp))}${unit.startsWith('°') ? '°' : esc(unit)}` : ''}</span>`;
+  }
+
+  _mainHtml() {
+    if (this._error) {
+      const code = this._error.code;
+      const text = code === 'unknown_command' || code === 'not_configured'
+        ? 'Set up the Pineapple Plan integration first.'
+        : esc(this._error.message || String(this._error));
+      return `<ha-card><div class="msg">${text}</div></ha-card>`;
+    }
+    if (!this._cfg || !this._days.length) return '<ha-card><div class="msg">Loading today…</div></ha-card>';
+
+    const page = this._config.tomorrow ? this._page : 0;
+    const d = this._days[page];
+    const m = this._cfg.members;
+    const date = parseIso(d.date);
+    const lang = this._hass?.locale?.language;
+    const longDate = date.toLocaleDateString(lang, { weekday: 'short', month: 'short', day: 'numeric' });
+    const editAttr = `data-action="edit" data-i="${page}"`;
+    const facts = [];
+    const fact = (ic, body, label, cls = '') => facts.push(
+      `<button type="button" class="fact" ${editAttr} aria-label="${esc(label)}"><span class="f-ic ${cls}">${icon(ic, 17)}</span><span class="f-b">${body}</span></button>`,
+    );
+
+    const kid = (member, kind, drop, pick) => fact(
+      'backpack',
+      `${this._av(member.key, 22, true)}<b>${esc(member.name)}</b><span class="mini">${kind}</span><span class="sep"></span>
+       <span class="mini">drop</span>${this._whoChip(drop)}<span class="mini">pick up</span>${this._whoChip(pick)}`,
+      `${member.name} ${kind}: drop-off ${this._name(drop) || 'nobody yet'}, pick-up ${this._name(pick) || 'nobody yet'}`,
+    );
+    if (d.child1_school) kid(m.child1, 'school', d.child1_drop, d.child1_pick);
+    if (d.child2_daycare) kid(m.child2, 'daycare', d.child2_drop, d.child2_pick);
+
+    const acts = [];
+    if (d.jj) acts.push(['Jiu jitsu', d.jj_who]);
+    if (d.swim) acts.push(['Swimming', d.swim_who]);
+    if (acts.length) {
+      fact('medal', acts.map(([l, w], idx) => `${idx ? '<span class="sep"></span>' : ''}<span>${l}</span>${this._whoChip(w)}`).join(''),
+        acts.map(([l, w]) => `${l}: ${this._name(w) || 'nobody yet'}`).join(', '));
+    }
+
+    const work = [];
+    if (d.adult1_works) work.push(`${this._av('adult1', 22)}<span>${esc(d.adult1_hours || 'Working')}</span>${d.adult1_location ? `<span class="loc ${d.adult1_location}" style="display:inline-flex;color:var(--pp-${d.adult1_location === 'home' ? 'hm' : 'of'})" title="${d.adult1_location === 'home' ? 'Working from home' : 'In the office'}">${icon(d.adult1_location, 15)}</span>` : ''}`);
+    if (d.adult2_works) work.push(`${this._av('adult2', 22)}<span>${esc(d.adult2_hours || 'Working')}</span>`);
+    if (work.length) fact('briefcase', work.join('<span class="sep"></span>'), 'Work hours');
+
+    if (d.dinner_type) {
+      const cooks = this._cooks(d);
+      const kind = d.dinner_type === 'takeout' ? 'takeout' : d.dinner_type === 'other' ? '' : (cooks.length ? '' : 'who’s cooking?');
+      fact('fork', `<span class="f-meal">${esc(this._mealText(d))}</span>${cooks.map((k) => this._av(k, 22)).join('')}${kind ? `<span class="mini">${kind}</span>` : ''}`,
+        `Dinner: ${this._mealText(d)}`, 'dn');
+    } else {
+      fact('fork', '<span class="plan">Plan dinner</span>', 'Plan dinner', 'dn');
+    }
+
+    if (facts.length === 1) facts.unshift(`<button type="button" class="fact" ${editAttr}><span class="f-ic">${icon('calendar', 17)}</span><span class="f-b mini">Nothing else scheduled</span></button>`);
+
+    // Open spots for this day only.
+    const open = this._gaps().filter((g) => g.i === page).length;
+
+    const tasks = this._tasks.filter((t) => t.date === d.date);
+    const undone = tasks.filter((t) => !t.done);
+    const max = Math.max(1, Number(this._config.max_tasks) || 4);
+    const doneCount = tasks.length - undone.length;
+    const taskRow = tasks.length ? `<div class="t-tasks"><span class="lbl">Tasks</span>
+      ${undone.slice(0, max).map((t) => `<span class="tchip"><button type="button" class="chk" data-action="task-done" data-id="${esc(t.id)}" aria-pressed="false" aria-label="${esc(`Mark done: ${t.title}`)}"><span class="ring"></span></button><button type="button" class="tt" data-action="task-open" data-id="${esc(t.id)}">${esc(t.title)}</button>${t.who ? this._av(t.who, 20) : ''}</span>`).join('')}
+      ${undone.length > max ? `<span class="tmore">+${undone.length - max} more</span>` : ''}
+      ${doneCount ? `<span class="tmore">${undone.length ? '· ' : ''}${doneCount} done</span>` : ''}</div>` : '';
+
+    const title = page === 0 ? 'Today' : 'Tomorrow';
+    const titleTag = this._config.navigation_path
+      ? `<button type="button" class="t-title" data-action="navigate" title="Open the planner">${title}</button>`
+      : `<button type="button" class="t-title" ${editAttr} title="Plan ${esc(longDate)}">${title}</button>`;
+    const dots = this._config.tomorrow ? `<div class="t-dots">
+        <button type="button" class="t-dot" data-action="page" data-v="0" aria-pressed="${page === 0}" aria-label="Today"><span></span></button>
+        <button type="button" class="t-dot" data-action="page" data-v="1" aria-pressed="${page === 1}" aria-label="Tomorrow"><span></span></button></div>` : '';
+
+    return `<ha-card><div class="today">
+      <div class="t-head">${titleTag}<span class="t-date">${esc(longDate)}</span><span class="t-sp"></span>
+        ${open ? `<button type="button" class="t-open" ${editAttr}>${open} open</button>` : ''}${this._weatherHtml()}</div>
+      <div class="t-main">
+        <div class="t-cal" aria-hidden="true"><span class="d">${esc(date.toLocaleDateString(lang, { weekday: 'short' }))}</span><span class="n">${date.getDate()}</span><span class="m">${esc(date.toLocaleDateString(lang, { month: 'short' }))}</span></div>
+        <div class="t-facts">${facts.join('')}</div>
+      </div>
+      ${taskRow}${dots}
+    </div></ha-card>`;
+  }
+}
+
 if (!customElements.get('pineapple-plan-card')) {
   customElements.define('pineapple-plan-card', PineapplePlanCard);
   window.customCards = window.customCards || [];
@@ -1312,4 +1607,15 @@ if (!customElements.get('pineapple-plan-card')) {
   });
   // eslint-disable-next-line no-console
   console.info(`%c PINEAPPLE-PLAN %c ${PP_VERSION} `, 'background:#F5B92E;color:#17201B;font-weight:700', 'background:#1F6A4A;color:#fff');
+}
+
+if (!customElements.get('pineapple-plan-today-card')) {
+  customElements.define('pineapple-plan-today-card', PineapplePlanTodayCard);
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: 'pineapple-plan-today-card',
+    name: 'Pineapple Plan · Today',
+    description: 'Today at a glance: school runs, work, activities, dinner and tasks.',
+    preview: false,
+  });
 }
