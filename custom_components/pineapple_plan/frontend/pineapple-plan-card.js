@@ -4,7 +4,7 @@
  * over the websocket API.
  */
 
-const PP_VERSION = '0.1.0';
+const PP_VERSION = '0.1.1';
 
 /* ---------------------------------------------------------------- theme */
 
@@ -105,11 +105,25 @@ button{font:inherit;color:inherit}
 .task.done .tt{color:var(--pp-fa);text-decoration:line-through}
 .grip{flex:none;color:var(--pp-fa);margin-left:6px}
 .empty{display:block;padding:10px;text-align:center;font-size:12px;color:var(--pp-fa);border:1.5px dashed var(--pp-ln2);border-radius:10px}
+.txtbtn{appearance:none;border:0;background:var(--pp-sk);height:36px;padding:0 12px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600}
+.txtbtn:disabled{opacity:.5;cursor:default}
+.target{display:flex;align-items:center;gap:10px;font-size:13px;line-height:1.4;color:var(--pp-ink);background:var(--pp-acs);border:1px solid var(--pp-ac);border-radius:12px;padding:8px 8px 8px 12px}
+.target span{flex:1}
+.ib-add{appearance:none;border:0;background:var(--pp-ac);color:var(--pp-aci);width:44px;height:44px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.inb-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.inb-ht{display:flex;align-items:center;gap:8px;color:var(--pp-ac)}
+.inb-ht h2{margin:0;font-size:18px;font-weight:700;color:var(--pp-ink)}
+.inb-sub{margin:0;font-size:13px;line-height:1.45;color:var(--pp-mu)}
+.inb-add{display:flex;gap:8px}
+.inb-add .inp{height:44px;font-size:14px}
+.inb-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px}
+.inb-list .task{min-height:46px}
+.inb-list .tt{font-size:14px}
 `;
 
 const CARD_CSS = `
-:host{display:block}
-.pp{background:var(--pp-bg);border-radius:var(--ha-card-border-radius,16px);overflow:hidden;display:flex;flex-direction:column;position:relative}
+:host{display:block;height:100%}
+.pp{height:100%;background:var(--pp-bg);border-radius:var(--ha-card-border-radius,16px);overflow:hidden;display:flex;flex-direction:column;position:relative}
 .hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 14px}
 .n1 .hdr{padding:12px 14px 8px}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
@@ -117,8 +131,6 @@ const CARD_CSS = `
 .brand-s{font-size:13px;color:var(--pp-mu);font-weight:500;white-space:nowrap}
 .hdr-r{display:flex;align-items:center;gap:10px;flex:none}
 .wknav{display:flex;align-items:center;gap:4px;background:var(--pp-sf);border:1px solid var(--pp-ln);border-radius:12px;padding:3px}
-.txtbtn{appearance:none;border:0;background:var(--pp-sk);height:36px;padding:0 12px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600}
-.txtbtn:disabled{opacity:.5;cursor:default}
 .chip{appearance:none;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 10px 0 6px;border:1px solid var(--pp-ln);background:var(--pp-sf);border-radius:999px;cursor:pointer}
 .chip-l{font-size:13px;font-weight:600;white-space:nowrap}
 .n1 .chip-l{display:none}
@@ -131,13 +143,18 @@ const CARD_CSS = `
 .dots{display:flex;gap:5px}
 .dot{width:6px;height:6px;border-radius:999px;background:var(--pp-ln2);transition:width .15s}
 .dot.on{width:16px;background:var(--pp-ac)}
-.body{display:flex;gap:14px;padding:0 20px 20px;min-height:0}
+.body{flex:1 1 auto;display:flex;gap:14px;padding:0 20px 20px;min-height:0}
+.panel{border-radius:0;min-height:calc(100vh - var(--header-height, 56px))}
+.panel .body{min-height:0}
 .n1 .body{padding:0 14px}
-.rail{flex:0 0 56px;border:1.5px solid var(--pp-ln);background:var(--pp-sf);border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px 0;align-self:stretch}
+.rail{flex:0 0 56px;border:1.5px solid var(--pp-ln);background:var(--pp-sf);border-radius:18px;display:flex;align-self:stretch;overflow:hidden}
+.rail-all{appearance:none;flex:1;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px 0;border-radius:16px}
+.rail-all:hover{background:var(--pp-sk)}
+.rail-all:focus-visible{outline:2px solid var(--pp-ac);outline-offset:-2px}
 .rail.over,.inbox.over{background:var(--pp-acs);border-color:var(--pp-ac)}
-.rail-btn{appearance:none;position:relative;width:44px;height:44px;border:0;background:var(--pp-sk);border-radius:12px;cursor:pointer;color:var(--pp-ac);display:inline-flex;align-items:center;justify-content:center}
+.rail-btn{position:relative;width:44px;height:44px;flex:none;background:var(--pp-sk);border-radius:12px;cursor:pointer;color:var(--pp-ac);display:inline-flex;align-items:center;justify-content:center}
 .rail-n{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--pp-ac);color:var(--pp-aci);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;border:2px solid var(--pp-sf)}
-.rail-t{appearance:none;border:0;background:transparent;padding:0;cursor:pointer;writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pp-mu)}
+.rail-t{writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pp-mu)}
 .inbox{flex:0 0 300px;border:1.5px solid var(--pp-ln);background:var(--pp-sf);border-radius:18px;display:flex;flex-direction:column;gap:12px;padding:14px;min-height:0;align-self:stretch}
 .n3 .inbox,.n5 .inbox{flex-basis:272px}
 .strip{flex:1;min-width:0;display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;align-items:stretch}
@@ -145,7 +162,13 @@ const CARD_CSS = `
 .col{flex:0 0 calc((100% - (var(--n) - 1) * 12px) / var(--n));min-width:0;scroll-snap-align:start;background:var(--pp-sf);border:1.5px solid var(--pp-ln);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;scrollbar-width:thin}
 .col.over{background:var(--pp-acs);border-color:var(--pp-ac)}
 .col.past{opacity:.72}
-.dh{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 2px 0}
+.dh{appearance:none;border:0;background:transparent;text-align:left;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px;margin:-2px -2px 0;border-radius:10px;color:inherit}
+.dh:hover{background:var(--pp-sk)}
+.dh:focus-visible{outline:2px solid var(--pp-ac);outline-offset:0}
+.sec.free{flex-direction:row;align-items:center;background:transparent;border-style:dashed}
+.addtask{appearance:none;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:40px;padding:8px;border:1.5px dashed var(--pp-ln2);border-radius:10px;background:transparent;color:var(--pp-mu);font-size:13px;font-weight:600;cursor:pointer}
+.addtask:hover,.addtask.on{border-color:var(--pp-ac);color:var(--pp-ac);background:var(--pp-acs)}
+.addtask:focus-visible{outline:2px solid var(--pp-ac);outline-offset:2px}
 .dh-n{font-size:26px;font-weight:700;line-height:1}
 .dh-d{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--pp-mu);margin-left:7px}
 .pill{font-size:11px;font-weight:700;border-radius:999px;padding:3px 8px;white-space:nowrap}
@@ -175,16 +198,6 @@ const CARD_CSS = `
 .tag.other{background:var(--pp-otb);color:var(--pp-otf)}
 .plan-dn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--pp-gpi)}
 .tasks{display:flex;flex-direction:column;gap:6px;padding:4px 2px 2px}
-.ib-add{appearance:none;border:0;background:var(--pp-ac);color:var(--pp-aci);width:44px;height:44px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:none}
-.inb-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.inb-ht{display:flex;align-items:center;gap:8px;color:var(--pp-ac)}
-.inb-ht h2{margin:0;font-size:18px;font-weight:700;color:var(--pp-ink)}
-.inb-sub{margin:0;font-size:13px;line-height:1.45;color:var(--pp-mu)}
-.inb-add{display:flex;gap:8px}
-.inb-add .inp{height:44px;font-size:14px}
-.inb-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px}
-.inb-list .task{min-height:46px}
-.inb-list .tt{font-size:14px}
 .foot{padding:10px 14px 14px}
 .tasksbtn{appearance:none;width:100%;height:52px;border:0;background:var(--pp-ac);border-radius:14px;cursor:pointer;color:var(--pp-aci);display:inline-flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:600}
 .tasksbtn .cnt{font-size:12px;font-weight:700;color:var(--pp-ac);background:var(--pp-aci);border-radius:999px;padding:2px 8px}
@@ -271,6 +284,18 @@ class PineapplePlanCard extends HTMLElement {
     this._recipes = { query: '', list: [], loading: false, available: true };
     this._dragId = null;
     this._pendingScroll = null;
+    this._target = null;
+    this._isPanel = false;
+  }
+
+  // Home Assistant sets this when the card is the only card in a Panel view.
+  set isPanel(value) {
+    this._isPanel = !!value;
+    this._render();
+  }
+
+  get isPanel() {
+    return this._isPanel;
   }
 
   setConfig(config) {
@@ -402,6 +427,7 @@ class PineapplePlanCard extends HTMLElement {
   async _changeWeek(delta, scrollTo = null) {
     this._weekStart = delta === 0 ? weekStartOf(todayIso(), this._cfg.week_start) : addDays(this._weekStart, delta * 7);
     this._ui.edit = null;
+    this._target = null;
     if (delta === 0) {
       await this._loadWeek(true);
     } else {
@@ -527,7 +553,7 @@ class PineapplePlanCard extends HTMLElement {
       ? '--pp-font:var(--paper-font-body1_-_font-family,inherit);--pp-display:var(--pp-font)'
       : "--pp-font:'Inter',system-ui,sans-serif;--pp-display:'Bricolage Grotesque','Inter',sans-serif";
     this._root.setAttribute('style', `${themeVars(t)};${fonts}`);
-    this._root.className = `pp n${this._n}`;
+    this._root.className = `pp n${this._n}${this._isPanel || this._config.fill ? ' panel' : ''}`;
     this._root.innerHTML = this._mainHtml();
     this._restore(this._root, snap);
     if (this._pendingScroll != null) {
@@ -585,8 +611,9 @@ class PineapplePlanCard extends HTMLElement {
       side = this._railOpen
         ? `<aside class="inbox" data-drop="inbox" aria-label="Task inbox">${this._inboxHtml(false)}</aside>`
         : `<aside class="rail" data-drop="inbox" aria-label="Task inbox">
-            <button type="button" class="rail-btn" data-action="rail" aria-expanded="false" aria-label="Open task inbox, ${inboxOpenCount} open">${icon('inbox', 20)}<span class="rail-n">${inboxOpenCount}</span></button>
-            <button type="button" class="rail-t" data-action="rail" tabindex="-1" aria-hidden="true">Task inbox</button></aside>`;
+            <button type="button" class="rail-all" data-action="rail" aria-expanded="false" aria-label="Open task inbox, ${inboxOpenCount} open">
+              <span class="rail-btn">${icon('inbox', 20)}<span class="rail-n">${inboxOpenCount}</span></span>
+              <span class="rail-t">Task inbox</span></button></aside>`;
     }
 
     const height = this._config.height ? `max-height:${esc(this._config.height)};` : '';
@@ -621,17 +648,34 @@ class PineapplePlanCard extends HTMLElement {
         : (dow === 0 || dow === 6) ? '<span class="pill we">Weekend</span>' : '';
     const long = this._longDate(d.date);
 
-    const work = (key, works, hours, loc) => `<span class="row">${this._av(key)}
-      <span class="t13${works ? '' : ' off'}">${works ? esc(hours || 'Working') : 'Off'}</span>
-      ${works && loc ? `<span class="loc ${loc}" title="${loc === 'home' ? 'Working from home' : 'In the office'}">${icon(loc, 14)}${loc === 'home' ? 'Home' : 'Office'}</span>` : ''}</span>`;
+    // Only what applies to this day is shown; everything stays editable in the day editor.
+    const work = (key, hours, loc) => `<span class="row">${this._av(key)}
+      <span class="t13">${esc(hours || 'Working')}</span>
+      ${loc ? `<span class="loc ${loc}" title="${loc === 'home' ? 'Working from home' : 'In the office'}">${icon(loc, 14)}${loc === 'home' ? 'Home' : 'Office'}</span>` : ''}</span>`;
 
-    const kid = (m, on, onLabel, offLabel, drop, pick) => `<span class="kid">
+    const kid = (m, label, drop, pick) => `<span class="kid">
       <span class="row">${this._av(m.key, 22, true)}<span class="t13" style="font-weight:600">${esc(m.name)}</span>
-        <span class="t13${on ? '' : ' off'}" style="font-weight:400">${on ? onLabel : offLabel}</span></span>
-      ${on ? `<span class="slots"><span class="slot">Drop ${this._who(drop)}</span><span class="slot">Pick up ${this._who(pick)}</span></span>` : ''}</span>`;
+        <span class="t13" style="font-weight:400">${label}</span></span>
+      <span class="slots"><span class="slot">Drop ${this._who(drop)}</span><span class="slot">Pick up ${this._who(pick)}</span></span></span>`;
 
-    const act = (label, on, who) => `<span class="row sb"><span class="t13${on ? '' : ' off'}">${label}</span>
-      ${on ? this._who(who) : '<span class="t13 off" style="font-size:12px">Not today</span>'}</span>`;
+    const act = (label, who) => `<span class="row sb"><span class="t13">${label}</span>${this._who(who)}</span>`;
+
+    const workRows = [
+      d.adult1_works ? work('adult1', d.adult1_hours, d.adult1_location) : '',
+      d.adult2_works ? work('adult2', d.adult2_hours, null) : '',
+    ].join('');
+    const kidRows = [
+      d.child1_school ? kid(c1, 'School', d.child1_drop, d.child1_pick) : '',
+      d.child2_daycare ? kid(c2, 'Daycare', d.child2_drop, d.child2_pick) : '',
+    ].join('');
+    const actRows = [d.jj ? act('Jiu jitsu', d.jj_who) : '', d.swim ? act('Swimming', d.swim_who) : ''].join('');
+
+    const sec = (label, aria, rows) => (rows
+      ? `<button type="button" class="sec" data-action="edit" data-i="${i}" aria-label="${aria} for ${esc(long)}"><span class="lbl">${label}</span>${rows}</button>`
+      : '');
+    const sections = sec('Work', 'Edit work', workRows)
+      + sec('School &amp; daycare', 'Edit school and daycare', kidRows)
+      + sec(`${esc(c1.name)}’s activities`, 'Edit activities', actRows);
 
     let dinner;
     if (d.dinner_type) {
@@ -650,27 +694,13 @@ class PineapplePlanCard extends HTMLElement {
     }
 
     const tasks = this._tasks.filter((t) => t.date === d.date).sort((a, b) => a.done - b.done);
-    const taskHtml = tasks.length
-      ? tasks.map((t) => this._taskHtml(t)).join('')
-      : `<span class="empty">${this._n === 1 ? 'No tasks yet' : 'Drop a task here'}</span>`;
+    const target = this._target === d.date;
+    const taskHtml = tasks.map((t) => this._taskHtml(t)).join('')
+      + `<button type="button" class="addtask${target ? ' on' : ''}" data-action="task-for-day" data-i="${i}" aria-label="Add a task to ${esc(long)}">${icon('plus', 14, 2.4)}Task</button>`;
 
     return `<div class="col${d.date < today ? ' past' : ''}" data-drop="${i}" data-col="${i}" style="${height}">
-      <div class="dh"><div style="display:flex;align-items:baseline"><span class="dh-n disp">${parseIso(d.date).getDate()}</span><span class="dh-d">${esc(this._dow(d.date))}</span></div>${pill}</div>
-      <button type="button" class="sec" data-action="edit" data-i="${i}" aria-label="Edit work for ${esc(long)}">
-        <span class="lbl">Work</span>
-        ${work('adult1', d.adult1_works, d.adult1_hours, d.adult1_location)}
-        ${work('adult2', d.adult2_works, d.adult2_hours, null)}
-      </button>
-      <button type="button" class="sec" data-action="edit" data-i="${i}" aria-label="Edit school and daycare for ${esc(long)}">
-        <span class="lbl">School &amp; daycare</span>
-        ${kid(c1, d.child1_school, 'School', 'No school', d.child1_drop, d.child1_pick)}
-        ${kid(c2, d.child2_daycare, 'Daycare', 'No daycare', d.child2_drop, d.child2_pick)}
-      </button>
-      <button type="button" class="sec" data-action="edit" data-i="${i}" aria-label="Edit activities for ${esc(long)}">
-        <span class="lbl">${esc(c1.name)}’s activities</span>
-        ${act('Jiu jitsu', d.jj, d.jj_who)}
-        ${act('Swimming', d.swim, d.swim_who)}
-      </button>
+      <button type="button" class="dh" data-action="edit" data-i="${i}" aria-label="Plan ${esc(long)}"><span style="display:flex;align-items:baseline"><span class="dh-n disp">${parseIso(d.date).getDate()}</span><span class="dh-d">${esc(this._dow(d.date))}</span></span>${pill}</button>
+      ${sections || `<button type="button" class="sec free" data-action="edit" data-i="${i}" aria-label="Plan ${esc(long)}"><span class="t13 off">Nothing scheduled</span></button>`}
       <button type="button" class="sec dn" data-action="edit" data-i="${i}" aria-label="Edit dinner for ${esc(long)}">
         <span class="lbl">${icon('fork', 13, 2.2)}Dinner</span>${dinner}
       </button>
@@ -693,8 +723,13 @@ class PineapplePlanCard extends HTMLElement {
     const closeBtn = sheet
       ? `<button type="button" class="ib soft" data-action="close" aria-label="Close tasks">${icon('close')}</button>`
       : `<button type="button" class="ib soft" data-action="rail" aria-label="Collapse task inbox">${icon('collapse')}</button>`;
+    const targetDay = this._target ? this._days.find((d) => d.date === this._target) : null;
+    const sub = targetDay
+      ? `<div class="target"><span>Adding to <strong>${esc(this._longDate(targetDay.date))}</strong>. Pick a task below or type a new one.</span>
+          <button type="button" class="txtbtn" data-action="target-cancel">Cancel</button></div>`
+      : `<p class="inb-sub">${sheet ? 'Tap the circle to check a task off, or tap its name to give it a day or a person.' : 'Not tied to a day yet. Drag one onto a day, or tap it to assign.'}</p>`;
     return `<div class="inb-h"><div class="inb-ht">${icon('inbox', 20)}<h2 class="disp">Task inbox</h2><span class="badge">${open}</span></div>${closeBtn}</div>
-      <p class="inb-sub">${sheet ? 'Tap the circle to check a task off, or tap its name to give it a day or a person.' : 'Not tied to a day yet. Drag one onto a day, or tap it to assign.'}</p>
+      ${sub}
       <div class="inb-add"><label for="pp-draft" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">New task</label>
         <input id="pp-draft" class="inp" type="text" placeholder="Add a task…" data-focus="draft" data-input="draft" value="${esc(this._draft)}">
         <button type="button" class="ib-add" data-action="task-add" aria-label="Add task">${icon('plus', 20, 2.2)}</button></div>
@@ -1056,7 +1091,27 @@ class PineapplePlanCard extends HTMLElement {
         break;
       case 'rail':
         this._railOpen = !this._railOpen;
+        if (!this._railOpen) this._target = null;
         try { localStorage.setItem('pineapple-plan-rail', this._railOpen ? 'open' : 'closed'); } catch (_) { /* ignore */ }
+        this._render();
+        if (this._railOpen) this._root.querySelector('.inbox [data-input="draft"]')?.focus({ preventScroll: true });
+        break;
+      case 'task-for-day': {
+        // "+ Task" on a day: open the inbox (sidebar or phone sheet) to pick or add a task for that day.
+        this._target = this._days[Number(el.dataset.i)]?.date || null;
+        if (this._n === 1) {
+          this._ui = { edit: null, taskEdit: null, inboxOpen: true, summaryOpen: false };
+          this._render();
+          this._portal.querySelector('[data-input="draft"]')?.focus({ preventScroll: true });
+        } else {
+          this._railOpen = true;
+          this._render();
+          this._root.querySelector('.inbox [data-input="draft"]')?.focus({ preventScroll: true });
+        }
+        break;
+      }
+      case 'target-cancel':
+        this._target = null;
         this._render();
         break;
       case 'inbox-open':
@@ -1090,10 +1145,17 @@ class PineapplePlanCard extends HTMLElement {
         if (t) this._patchTask(t.id, { done: !t.done });
         break;
       }
-      case 'task-open':
+      case 'task-open': {
+        const t = this._tasks.find((x) => x.id === el.dataset.id);
+        if (this._target && t && !t.date) {
+          // Picking an inbox task while adding to a day puts it on that day.
+          this._assignToTarget(t.id);
+          break;
+        }
         this._ui = { edit: null, taskEdit: el.dataset.id, inboxOpen: false, summaryOpen: false };
         this._renderPortal();
         break;
+      }
       case 'task-delete': {
         const id = this._ui.taskEdit;
         this._tasks = this._tasks.filter((x) => x.id !== id);
@@ -1125,6 +1187,7 @@ class PineapplePlanCard extends HTMLElement {
 
   _closeOverlay() {
     const wasTask = this._ui.taskEdit;
+    if (this._ui.inboxOpen) this._target = null;
     this._ui = { edit: null, taskEdit: null, inboxOpen: false, summaryOpen: false };
     this._render();
     if (wasTask) {
@@ -1189,13 +1252,26 @@ class PineapplePlanCard extends HTMLElement {
     const title = ((input && input.value) || this._draft).trim();
     if (!title) return;
     this._draft = '';
-    const temp = { id: `tmp-${Date.now()}`, title, who: null, date: null, done: false };
+    const date = this._target || null;
+    const temp = { id: `tmp-${Date.now()}`, title, who: null, date, done: false };
     this._tasks.push(temp);
     if (input) input.value = '';
+    if (date) this._finishTarget();
     this._render();
-    this._ws('task/create', { title })
+    this._ws('task/create', { title, date })
       .then((task) => { const idx = this._tasks.indexOf(temp); if (idx >= 0) this._tasks[idx] = task; this._render(); })
       .catch((err) => { this._tasks = this._tasks.filter((x) => x !== temp); this._toastError(err); this._render(); });
+  }
+
+  _assignToTarget(id) {
+    const date = this._target;
+    this._finishTarget();
+    this._patchTask(id, { date });
+  }
+
+  _finishTarget() {
+    this._target = null;
+    if (this._n === 1) this._ui = { ...this._ui, inboxOpen: false };
   }
 
   async _loadRecipes() {

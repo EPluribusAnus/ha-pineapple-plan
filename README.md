@@ -32,7 +32,7 @@ The card loads automatically; you don't need to add a resource. Edit a dashboard
 type: custom:pineapple-plan-card
 ```
 
-It works best as a full-width card, for example in a **Panel** view or a full-width section.
+It works best as a full-width card. In a **Panel** view it fills the whole screen height.
 
 | Option    | Default  | What it does |
 |-----------|----------|--------------|
@@ -40,6 +40,7 @@ It works best as a full-width card, for example in a **Panel** view or a full-wi
 | `summary` | `auto`   | Header summary button. `auto`: "Your week" for household members, a whole-household "This week" summary for anyone else (like a kitchen kiosk account). `household`: always show the household summary. `hidden`: no summary button. |
 | `theme`   | follows HA | `light` or `dark` to force a theme. Otherwise it follows Home Assistant's dark mode. |
 | `height`  | none     | Maximum height of each day column (for example `640px`); columns scroll inside. |
+| `fill`    | `false`  | `true` stretches the card to the full screen height even outside a Panel view. |
 | `fonts`   | `true`   | `false` uses your Home Assistant theme's font instead of loading Inter and Bricolage Grotesque from Google Fonts. |
 
 For a kitchen kiosk:
@@ -52,6 +53,8 @@ summary: household
 ### Layout
 
 The card lays itself out by its own width: one day at a time on a phone (swipe, or use the arrows), 3 or 5 days on mid-size screens (scrolls continuously), and the whole week on wide screens. On tablets and desktops the task inbox is a collapsible sidebar, closed by default.
+
+Each day only shows what applies (who's working, school or daycare runs, activities). Tap the date or any section to plan the day, including turning things back on. **+ Task** on a day opens the inbox so you can pick an existing task or type a new one for that day. Dragging tasks onto a day works too.
 
 ## Entities
 

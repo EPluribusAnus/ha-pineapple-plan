@@ -9,19 +9,24 @@
   body.dark { background: #0b0f0c; }
   .bar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; font-size: 13px; color: #444; flex-wrap: wrap; }
   body.dark .bar { color: #aaa; }
+  body.panel { padding: 0; }
+  body.panel .bar { display: none; }
+  /* Mimics Home Assistant's panel view: the card gets the full height under the 56px toolbar. */
+  .panel-wrap { height: calc(100vh - 56px); margin-top: 56px; }
 </style>
 </head>
 <body>
 <div class="bar">
   Card preview with a fake backend ·
-  <a href="?">Justin</a> <a href="?user=kiosk">Kiosk</a> <a href="?user=ava">Ava</a> <a href="?dark=1">Dark</a> <a href="?nomealie=1">No Mealie</a>
+  <a href="?">Justin</a> <a href="?user=kiosk">Kiosk</a> <a href="?user=ava">Ava</a> <a href="?dark=1">Dark</a> <a href="?nomealie=1">No Mealie</a> <a href="?panel=1">Panel view</a>
 </div>
-<pineapple-plan-card id="card"></pineapple-plan-card>
+<div id="wrap"><pineapple-plan-card id="card"></pineapple-plan-card></div>
 <script>
 /* Fake Home Assistant + pineapple_plan backend for previewing the card. */
 const qs = new URLSearchParams(location.search);
 const dark = qs.has('dark');
 if (dark) document.body.classList.add('dark');
+if (qs.has('panel')) { document.body.classList.add('panel'); document.getElementById('wrap').className = 'panel-wrap'; }
 
 const pad = (n) => String(n).padStart(2, '0');
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -126,6 +131,7 @@ const hass = {
 await import('../custom_components/pineapple_plan/frontend/pineapple-plan-card.js');
 const card = document.getElementById('card');
 card.setConfig({});
+if (qs.has('panel')) card.isPanel = true;
 card.hass = hass;
 </script>
 </body>
